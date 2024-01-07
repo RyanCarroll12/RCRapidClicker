@@ -190,6 +190,11 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 				case HotKeyID::TOGGLE_CLICKING:
 				{
 					clicking = !clicking;
+
+					if (clicking)
+						SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+					else
+						SetThreadExecutionState(ES_CONTINUOUS);
 				}
 				case HotKeyID::SAVE_MOUSE_POSITION:
 				{
@@ -269,16 +274,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 	BOOL bRet;
 	do
 	{
-		bRet = GetMessage(&message, NULL, 0, 0);
-
-		CursorPosition = message.pt;
-
-		if (clicking)
+		while (clicking)
 		{
+			if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
+			{
+				TranslateMessage(&message);
+				DispatchMessage(&message);
+			}
+
 			GetCursorPos(&CursorPosition);
 			mouse_event(MOUSEEVENTF_LEFTDOWN, CursorPosition.x, CursorPosition.y, 0, 0);
 			mouse_event(MOUSEEVENTF_LEFTUP, CursorPosition.x, CursorPosition.y, 0, 0);
 		}
+
+		bRet = GetMessage(&message, NULL, 0, 0);
 
 		if (bRet < 0)
 		{
