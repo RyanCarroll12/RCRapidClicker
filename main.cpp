@@ -28,12 +28,28 @@ const enum MenuCMD
 };
 
 HICON rcIcon;
+UINT WM_TASKBARCREATED;
 
-uint16_t clicking = false;
+uint16_t clicking = FALSE;
 
-POINT CursorPosition = {};
+float ClickSpeed = 1.0f/100.0f;
+
 POINT SavedCursorPosition = {};
 
+
+void ShowNotification(HWND Window, LPCSTR Message, LPCSTR Title, DWORD Flags)
+{
+	NOTIFYICONDATA Data = {};
+	Data.cbSize = sizeof(Data);
+	Data.hWnd = Window;
+	Data.uFlags = NIF_INFO | NIF_TIP;
+	Data.dwInfoFlags = Flags;
+	StringCbCopy(Data.szTip, sizeof(Data.szTip), APP_NAME);
+	StringCbCopy(Data.szInfo, sizeof(Data.szInfo), Message);
+	StringCbCopy(Data.szInfoTitle, sizeof(Data.szInfoTitle), Title ? Title : APP_NAME);
+
+	Shell_NotifyIcon(NIM_MODIFY, &Data);
+}
 
 void UpdateTrayIcon(HWND Window)
 {
@@ -135,7 +151,7 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 		}
 		case WM_CHAR:
 		{
-			InvalidateRect(Window, NULL, true);
+			InvalidateRect(Window, NULL, TRUE);
 			UpdateWindow(Window);
 			break;
 		}
@@ -151,40 +167,52 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 		}
 		case WM_RC_COMMAND:
 		{
-			if (LOWORD(lParam) == WM_RBUTTONUP)
+			switch (LOWORD(lParam))
 			{
-				HMENU Menu = CreatePopupMenu();
-
-				AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), MenuCMD::SETTINGS, "Settings");
-				AppendMenu(Menu, MF_SEPARATOR, NULL, NULL);
-				AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), MenuCMD::QUIT, "Quit");
-
-				POINT Mouse;
-				GetCursorPos(&Mouse);
-
-				int Command = TrackPopupMenu(Menu, TPM_RETURNCMD | TPM_NONOTIFY, Mouse.x, Mouse.y, 0, Window, NULL);
-
-				if (Command == MenuCMD::SETTINGS)
+				case WM_RBUTTONUP:
 				{
+					HMENU Menu = CreatePopupMenu();
+
+					AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), MenuCMD::SETTINGS, "Settings");
+					AppendMenu(Menu, MF_SEPARATOR, NULL, NULL);
+					AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), MenuCMD::QUIT, "Quit");
+
+					POINT Mouse;
+					GetCursorPos(&Mouse);
+
+					SetForegroundWindow(Window);
+					int Command = TrackPopupMenu(Menu, TPM_RETURNCMD | TPM_NONOTIFY, Mouse.x, Mouse.y, 0, Window, NULL);
+
+					if (Command == MenuCMD::SETTINGS)
+					{
+						break;
+					}
+					else if (Command == MenuCMD::QUIT)
+					{
+						DestroyWindow(Window);
+					}
+
+					DestroyMenu(Menu);
+
 					break;
 				}
-				else if (Command == MenuCMD::QUIT)
+				case WM_LBUTTONDBLCLK:
 				{
-					DestroyWindow(Window);
+					/*if (Config_ShowDialog())
+					{
+						Config_Save(&gConfig, gConfigPath);
+						DisableHotKeys(Window);
+						EnableHotKeys(Window);
+					}*/
+
+					break;
 				}
 			}
-			if (LOWORD(lParam) == WM_LBUTTONDBLCLK)
-			{
-				/*if (Config_ShowDialog())
-				{
-					Config_Save(&gConfig, gConfigPath);
-					DisableHotKeys(Window);
-					EnableHotKeys(Window);
-				}*/
-				break;
-			}
+
+			break;
 		}
 		case WM_HOTKEY:
+		{
 			switch (wParam)
 			{
 				case HotKeyID::TOGGLE_CLICKING:
@@ -201,8 +229,27 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 					GetCursorPos(&SavedCursorPosition);
 				}
 			}
+
+			break;
+		}
+		case WM_RC_ALREADY_RUNNING:
+		{
+			ShowNotification(Window, "RC is already running!", NULL, NIIF_INFO);
+			break;
+		}
 		default:
-			return DefWindowProc(Window, Message, wParam, lParam);
+		{
+			if (Message == WM_TASKBARCREATED)
+			{
+				// This is used to add the icon back if explorer.exe crashes
+				AddTrayIcon(Window);
+				return 0;
+			}
+			else
+			{
+				return DefWindowProc(Window, Message, wParam, lParam);
+			}
+		}
 	}
 
 	return 0;
@@ -210,7 +257,13 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
 {
+	LARGE_INTEGER PerfCountFrequencyResult;
+	QueryPerformanceFrequency(&PerfCountFrequencyResult);
+	uint64_t PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+
 	rcIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_ICON2), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
+
+	WM_TASKBARCREATED = RegisterWindowMessage("TaskbarCreated");
 
 	WNDCLASSEX WindowClass = { };
 	WindowClass.cbSize = sizeof(WindowClass);
@@ -219,6 +272,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 	WindowClass.hInstance = hInstance;
 	WindowClass.hIcon = rcIcon;
 	WindowClass.lpszClassName = "rc_rapid_clicker_window_class";
+
+	HWND Existing = FindWindow(WindowClass.lpszClassName, NULL);
+	if (Existing)
+	{
+		PostMessage(Existing, WM_RC_ALREADY_RUNNING, 0, 0);
+		ExitProcess(0);
+	}
 
 	if (!RegisterClassEx(&WindowClass))
 	{
@@ -274,6 +334,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 	BOOL bRet;
 	do
 	{
+		LARGE_INTEGER Counter = {};
+		LARGE_INTEGER ClickCounter = {};
+
 		while (clicking)
 		{
 			if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
@@ -282,9 +345,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 				DispatchMessage(&message);
 			}
 
-			GetCursorPos(&CursorPosition);
-			mouse_event(MOUSEEVENTF_LEFTDOWN, CursorPosition.x, CursorPosition.y, 0, 0);
-			mouse_event(MOUSEEVENTF_LEFTUP, CursorPosition.x, CursorPosition.y, 0, 0);
+			POINT CursorPosition = message.pt;
+
+			QueryPerformanceCounter(&Counter);
+
+			uint64_t CounterElapsed = Counter.QuadPart - ClickCounter.QuadPart;
+			float TimeElapsed = (float) CounterElapsed / (float) PerfCountFrequency;
+
+			if (TimeElapsed >= ClickSpeed) // Possibly integrate perfcountfrequency into clickspeed so it isn't calculated ever pass
+			{
+				ClickCounter = Counter;
+				mouse_event(MOUSEEVENTF_LEFTDOWN, CursorPosition.x, CursorPosition.y, 0, 0);
+				mouse_event(MOUSEEVENTF_LEFTUP, CursorPosition.x, CursorPosition.y, 0, 0);
+			}
 		}
 
 		bRet = GetMessage(&message, NULL, 0, 0);
