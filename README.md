@@ -1,3 +1,3 @@
 # RCRapidClicker
 
-A C++ auto-clicker.
+A C auto-clicker.

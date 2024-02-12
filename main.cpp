@@ -30,11 +30,12 @@ const enum MenuCMD
 HICON rcIcon;
 UINT WM_TASKBARCREATED;
 
-uint16_t clicking = FALSE;
+BOOL clicking = FALSE;
 
-float ClickSpeed = 1.0f/100.0f;
+float ClickSpeed = 1.0f/60.0f;
 
 POINT SavedCursorPosition = {};
+BOOL PointClicking = FALSE;
 
 
 void ShowNotification(HWND Window, LPCSTR Message, LPCSTR Title, DWORD Flags)
@@ -126,6 +127,16 @@ void process_key_state(uint64_t VKCode, uint64_t KeyMessageFlags)
 	}
 }
 
+INT_PTR Dlgproc(
+	HWND unnamedParam1,
+	UINT unnamedParam2,
+	WPARAM unnamedParam3,
+	LPARAM unnamedParam4
+)
+{
+	return 0;
+}
+
 LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lParam)
 {
 	switch (Message)
@@ -185,6 +196,8 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 
 					if (Command == MenuCMD::SETTINGS)
 					{
+						DLGTEMPLATE DTemplate;
+						// CreateDialog(GetModuleHandle(NULL), DTemplate, Window, Dlgproc)
 						break;
 					}
 					else if (Command == MenuCMD::QUIT)
@@ -219,16 +232,26 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 				{
 					clicking = !clicking;
 
-					if (clicking)
-						SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
-					else
-						SetThreadExecutionState(ES_CONTINUOUS);
+					PointClicking = FALSE;
+
+					break;
 				}
 				case HotKeyID::SAVE_MOUSE_POSITION:
 				{
+					PointClicking = !PointClicking;
+
+					clicking = FALSE;
+
 					GetCursorPos(&SavedCursorPosition);
+
+					break;
 				}
 			}
+
+			if (clicking || PointClicking)
+				SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+			else
+				SetThreadExecutionState(ES_CONTINUOUS);
 
 			break;
 		}
@@ -337,7 +360,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 		LARGE_INTEGER Counter = {};
 		LARGE_INTEGER ClickCounter = {};
 
-		while (clicking)
+		while (clicking || PointClicking)
 		{
 			if (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
 			{
@@ -345,7 +368,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 				DispatchMessage(&message);
 			}
 
-			POINT CursorPosition = message.pt;
+			POINT ClickPosition = (PointClicking) ? SavedCursorPosition : message.pt;
 
 			QueryPerformanceCounter(&Counter);
 
@@ -355,14 +378,29 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 			if (TimeElapsed >= ClickSpeed) // Possibly integrate perfcountfrequency into clickspeed so it isn't calculated ever pass
 			{
 				ClickCounter = Counter;
-				mouse_event(MOUSEEVENTF_LEFTDOWN, CursorPosition.x, CursorPosition.y, 0, 0);
-				mouse_event(MOUSEEVENTF_LEFTUP, CursorPosition.x, CursorPosition.y, 0, 0);
+
+				mouse_event(MOUSEEVENTF_LEFTDOWN, ClickPosition.x, ClickPosition.y, 0, 0);
+				mouse_event(MOUSEEVENTF_LEFTUP, ClickPosition.x, ClickPosition.y, 0, 0);
+
+				/*INPUT left_down = {};
+				left_down.type = INPUT_MOUSE;
+				left_down.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+				INPUT left_up = {};
+				left_up.type = INPUT_MOUSE;
+				left_up.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+				SendInput(1, &left_down, sizeof(INPUT));
+				SendInput(1, &left_up, sizeof(INPUT));*/
 			}
 		}
 
 		bRet = GetMessage(&message, NULL, 0, 0);
 
-		if (bRet < 0)
+		if (bRet >= 0)
+		{
+			TranslateMessage(&message);
+			DispatchMessage(&message);
+		}
+		else
 		{
 			MessageBox(NULL,
 				"Message returned error!",
@@ -370,11 +408,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 				NULL);
 
 			return bRet;
-		}
-		else
-		{
-			TranslateMessage(&message);
-			DispatchMessage(&message);
 		}
 	} while (bRet);
 
