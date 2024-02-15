@@ -99,7 +99,7 @@ BOOL EnableHotKeys(HWND Window)
 {
 	BOOL Success = TRUE;
 	
-	Success = Success && RegisterHotKey(Window, TOGGLE_CLICKING, MOD_CONTROL | MOD_NOREPEAT, VK_NUMPAD0);
+	Success = Success && RegisterHotKey(Window, TOGGLE_CLICKING, MOD_CONTROL | MOD_NOREPEAT, VK_RETURN);
 
 	Success = Success && RegisterHotKey(Window, SAVE_MOUSE_POSITION, MOD_CONTROL | MOD_NOREPEAT, VK_DECIMAL);
 
@@ -352,12 +352,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 			APP_NAME, MB_ICONEXCLAMATION);
 	}
 
+	INPUT LeftClick[2];
+	LeftClick[0].type = INPUT_MOUSE;
+	LeftClick[0].mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+	LeftClick[1].type = INPUT_MOUSE;
+	LeftClick[1].mi.dwFlags = MOUSEEVENTF_LEFTUP;
+
 	MSG message = { 0 };
 	BOOL bRet;
 	do
 	{
 		LARGE_INTEGER Counter = { 0 };
-		LARGE_INTEGER ClickCounter = { 0 };
+		LARGE_INTEGER PreviousClickCounter = { 0 };
+		uint64_t CounterSpeed = ClickSpeed * PerfCountFrequency;
 
 		while (clicking || PointClicking)
 		{
@@ -367,28 +374,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 				DispatchMessage(&message);
 			}
 
-			POINT ClickPosition = (PointClicking) ? SavedCursorPosition : message.pt;
+			POINT CursorPosition = (PointClicking) ? SavedCursorPosition : message.pt;
 
 			QueryPerformanceCounter(&Counter);
 
-			uint64_t CounterElapsed = Counter.QuadPart - ClickCounter.QuadPart;
-			float TimeElapsed = (float) CounterElapsed / (float) PerfCountFrequency;
+			uint64_t CounterElapsed = Counter.QuadPart - PreviousClickCounter.QuadPart;
 
-			if (TimeElapsed >= ClickSpeed) // Possibly integrate perfcountfrequency into clickspeed so it isn't calculated ever pass
+			if (CounterElapsed >= CounterSpeed)
 			{
-				ClickCounter = Counter;
+				PreviousClickCounter = Counter;
 
-				mouse_event(MOUSEEVENTF_LEFTDOWN, ClickPosition.x, ClickPosition.y, 0, 0);
-				mouse_event(MOUSEEVENTF_LEFTUP, ClickPosition.x, ClickPosition.y, 0, 0);
-
-				/*INPUT left_down = {};
-				left_down.type = INPUT_MOUSE;
-				left_down.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-				INPUT left_up = {};
-				left_up.type = INPUT_MOUSE;
-				left_up.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-				SendInput(1, &left_down, sizeof(INPUT));
-				SendInput(1, &left_up, sizeof(INPUT));*/
+				SendInput(ARRAYSIZE(LeftClick), LeftClick, sizeof(INPUT));
 			}
 		}
 
