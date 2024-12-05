@@ -3,7 +3,6 @@
 #include <uxtheme.h>
 #include <strsafe.h>
 
-#include <iostream>
 #include "resource.h"
 
 #pragma comment (lib, "uxtheme.lib")
@@ -34,13 +33,13 @@ BOOL clicking = FALSE;
 
 float ClickSpeed = 1.0f/60.0f;
 
-POINT SavedCursorPosition = {};
+POINT SavedCursorPosition = { 0 };
 BOOL PointClicking = FALSE;
 
 
 void ShowNotification(HWND Window, LPCSTR Message, LPCSTR Title, DWORD Flags)
 {
-	NOTIFYICONDATA Data = {};
+	NOTIFYICONDATA Data = { 0 };
 	Data.cbSize = sizeof(Data);
 	Data.hWnd = Window;
 	Data.uFlags = NIF_INFO | NIF_TIP;
@@ -54,7 +53,7 @@ void ShowNotification(HWND Window, LPCSTR Message, LPCSTR Title, DWORD Flags)
 
 void UpdateTrayIcon(HWND Window)
 {
-	NOTIFYICONDATA Data = { };
+	NOTIFYICONDATA Data = { 0 };
 	Data.cbSize = sizeof(Data);
 	Data.hWnd = Window;
 	Data.uFlags = NIF_ICON;
@@ -65,7 +64,7 @@ void UpdateTrayIcon(HWND Window)
 
 void AddTrayIcon(HWND Window)
 {
-	NOTIFYICONDATA Data = { };
+	NOTIFYICONDATA Data = { 0 };
 	Data.cbSize = sizeof(Data);
 	Data.hWnd = Window;
 	Data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
@@ -78,7 +77,7 @@ void AddTrayIcon(HWND Window)
 
 void RemoveTrayIcon(HWND Window)
 {
-	NOTIFYICONDATA Data = { };
+	NOTIFYICONDATA Data = { 0 };
 	Data.cbSize = sizeof(Data);
 	Data.hWnd = Window;
 
@@ -89,9 +88,9 @@ BOOL DisableHotKeys(HWND Window)
 {
 	BOOL Success = TRUE;
 
-	Success = Success && UnregisterHotKey(Window, HotKeyID::TOGGLE_CLICKING);
+	Success = Success && UnregisterHotKey(Window, TOGGLE_CLICKING);
 
-	Success = Success && UnregisterHotKey(Window, HotKeyID::SAVE_MOUSE_POSITION);
+	Success = Success && UnregisterHotKey(Window, SAVE_MOUSE_POSITION);
 
 	return Success;
 }
@@ -100,9 +99,9 @@ BOOL EnableHotKeys(HWND Window)
 {
 	BOOL Success = TRUE;
 	
-	Success = Success && RegisterHotKey(Window, HotKeyID::TOGGLE_CLICKING, MOD_CONTROL | MOD_NOREPEAT, VK_NUMPAD0);
+	Success = Success && RegisterHotKey(Window, TOGGLE_CLICKING, MOD_CONTROL | MOD_NOREPEAT, VK_NUMPAD0);
 
-	Success = Success && RegisterHotKey(Window, HotKeyID::SAVE_MOUSE_POSITION, MOD_CONTROL | MOD_NOREPEAT, VK_DECIMAL);
+	Success = Success && RegisterHotKey(Window, SAVE_MOUSE_POSITION, MOD_CONTROL | MOD_NOREPEAT, VK_DECIMAL);
 
 	return Success;
 }
@@ -120,7 +119,7 @@ void process_key_state(uint64_t VKCode, uint64_t KeyMessageFlags)
 	{
 		case VK_SPACE:
 		{
-			std::cout << "space pressed" << std::endl;
+			printf("space pressed\n");
 
 			break;
 		}
@@ -184,9 +183,9 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 				{
 					HMENU Menu = CreatePopupMenu();
 
-					AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), MenuCMD::SETTINGS, "Settings");
+					AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), SETTINGS, "Settings");
 					AppendMenu(Menu, MF_SEPARATOR, NULL, NULL);
-					AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), MenuCMD::QUIT, "Quit");
+					AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), QUIT, "Quit");
 
 					POINT Mouse;
 					GetCursorPos(&Mouse);
@@ -194,13 +193,13 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 					SetForegroundWindow(Window);
 					int Command = TrackPopupMenu(Menu, TPM_RETURNCMD | TPM_NONOTIFY, Mouse.x, Mouse.y, 0, Window, NULL);
 
-					if (Command == MenuCMD::SETTINGS)
+					if (Command == SETTINGS)
 					{
 						DLGTEMPLATE DTemplate;
 						// CreateDialog(GetModuleHandle(NULL), DTemplate, Window, Dlgproc)
 						break;
 					}
-					else if (Command == MenuCMD::QUIT)
+					else if (Command == QUIT)
 					{
 						DestroyWindow(Window);
 					}
@@ -228,7 +227,7 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 		{
 			switch (wParam)
 			{
-				case HotKeyID::TOGGLE_CLICKING:
+				case TOGGLE_CLICKING:
 				{
 					clicking = !clicking;
 
@@ -236,7 +235,7 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 
 					break;
 				}
-				case HotKeyID::SAVE_MOUSE_POSITION:
+				case SAVE_MOUSE_POSITION:
 				{
 					PointClicking = !PointClicking;
 
@@ -288,7 +287,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 
 	WM_TASKBARCREATED = RegisterWindowMessage("TaskbarCreated");
 
-	WNDCLASSEX WindowClass = { };
+	WNDCLASSEX WindowClass = { 0 };
 	WindowClass.cbSize = sizeof(WindowClass);
 	WindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
 	WindowClass.lpfnWndProc = WindowProc;
@@ -353,12 +352,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 			APP_NAME, MB_ICONEXCLAMATION);
 	}
 
-	MSG message = { };
+	MSG message = { 0 };
 	BOOL bRet;
 	do
 	{
-		LARGE_INTEGER Counter = {};
-		LARGE_INTEGER ClickCounter = {};
+		LARGE_INTEGER Counter = { 0 };
+		LARGE_INTEGER ClickCounter = { 0 };
 
 		while (clicking || PointClicking)
 		{
