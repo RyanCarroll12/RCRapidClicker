@@ -4,6 +4,8 @@
 #include <strsafe.h>
 
 #include "resource.h"
+#include "config.h"
+#include "inputs.h"
 
 #pragma comment (lib, "uxtheme.lib")
 
@@ -16,7 +18,7 @@ const char APP_NAME[] = "RC's Rapid Clicker";
 
 const enum HotKeyID
 {
-	  TOGGLE_CLICKING = 1
+	  TOGGLE_INPUT_EVENT = 1
 	, SAVE_MOUSE_POSITION = 2
 };
 
@@ -31,10 +33,11 @@ UINT WM_TASKBARCREATED;
 
 BOOL clicking = FALSE;
 
-float ClickSpeed = 1.0f/60.0f;
-
 POINT SavedCursorPosition = { 0 };
 BOOL PointClicking = FALSE;
+
+//globals
+static Config gConfig;
 
 
 void ShowNotification(HWND Window, LPCSTR Message, LPCSTR Title, DWORD Flags)
@@ -88,7 +91,7 @@ BOOL DisableHotKeys(HWND Window)
 {
 	BOOL Success = TRUE;
 
-	Success = Success && UnregisterHotKey(Window, TOGGLE_CLICKING);
+	Success = Success && UnregisterHotKey(Window, TOGGLE_INPUT_EVENT);
 
 	Success = Success && UnregisterHotKey(Window, SAVE_MOUSE_POSITION);
 
@@ -99,9 +102,15 @@ BOOL EnableHotKeys(HWND Window)
 {
 	BOOL Success = TRUE;
 	
-	Success = Success && RegisterHotKey(Window, TOGGLE_CLICKING, MOD_CONTROL | MOD_NOREPEAT, VK_NUMPAD0);
+	if (gConfig.ShortcutClicker)
+	Success = Success && RegisterHotKey(Window, TOGGLE_INPUT_EVENT
+		, HOT_KEY_GET_MOD(gConfig.ShortcutClicker) | MOD_NOREPEAT
+		, HOT_KEY_GET_KEY(gConfig.ShortcutClicker));
 
-	Success = Success && RegisterHotKey(Window, SAVE_MOUSE_POSITION, MOD_CONTROL | MOD_NOREPEAT, VK_DECIMAL);
+	if (gConfig.ShortcutSavePosition)
+	Success = Success && RegisterHotKey(Window, SAVE_MOUSE_POSITION
+		, HOT_KEY_GET_MOD(gConfig.ShortcutSavePosition) | MOD_NOREPEAT
+		, HOT_KEY_GET_KEY(gConfig.ShortcutSavePosition));
 
 	return Success;
 }
@@ -126,14 +135,38 @@ void process_key_state(uint64_t VKCode, uint64_t KeyMessageFlags)
 	}
 }
 
-INT_PTR Dlgproc(
-	HWND unnamedParam1,
-	UINT unnamedParam2,
-	WPARAM unnamedParam3,
-	LPARAM unnamedParam4
-)
+UINT execute_input_event(DWORD InputEvent)
 {
-	return 0;
+	INPUT* inputs;
+	int inputs_size;
+
+	if (InputEvent == CONFIG_INPUT_LEFTCLICK)
+	{
+		inputs = LeftClick;
+		inputs_size = ARRAY_SIZE(LeftClick);
+	}
+	else if (InputEvent == CONFIG_INPUT_ENTERKEY)
+	{
+		inputs = EnterKey;
+		inputs_size = ARRAY_SIZE(EnterKey);
+	}
+	else if (InputEvent == CONFIG_INPUT_MOVEMOUSE)
+	{
+		inputs = MoveMouse;
+		inputs_size = ARRAY_SIZE(MoveMouse);
+	}
+	else
+	{
+		//throw error
+		MessageBox(NULL,
+			"Invalid Input Event - RC",
+			APP_NAME,
+			0);
+
+		return -1;
+	}
+
+	return SendInput(inputs_size, inputs, sizeof(INPUT));
 }
 
 LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lParam)
@@ -184,7 +217,7 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 					HMENU Menu = CreatePopupMenu();
 
 					AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), SETTINGS, "Settings");
-					AppendMenu(Menu, MF_SEPARATOR, NULL, NULL);
+					AppendMenu(Menu, MF_SEPARATOR, (UINT_PTR)NULL, NULL);
 					AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), QUIT, "Quit");
 
 					POINT Mouse;
@@ -195,9 +228,12 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 
 					if (Command == SETTINGS)
 					{
-						DLGTEMPLATE DTemplate;
-						// CreateDialog(GetModuleHandle(NULL), DTemplate, Window, Dlgproc)
-						break;
+						if (Config_ShowDialog(&gConfig))
+						{
+							/*Config_Save(&gConfig, gConfigPath);*/
+							DisableHotKeys(Window);
+							EnableHotKeys(Window);
+						}
 					}
 					else if (Command == QUIT)
 					{
@@ -210,12 +246,12 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 				}
 				case WM_LBUTTONDBLCLK:
 				{
-					/*if (Config_ShowDialog())
+					if (Config_ShowDialog(&gConfig))
 					{
-						Config_Save(&gConfig, gConfigPath);
+						/*Config_Save(&gConfig, gConfigPath);*/
 						DisableHotKeys(Window);
 						EnableHotKeys(Window);
-					}*/
+					}
 
 					break;
 				}
@@ -227,7 +263,7 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 		{
 			switch (wParam)
 			{
-				case TOGGLE_CLICKING:
+				case TOGGLE_INPUT_EVENT:
 				{
 					clicking = !clicking;
 
@@ -248,7 +284,8 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
 			}
 
 			if (clicking || PointClicking)
-				SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED);
+				// ES_SYSTEM_REQUIRED will reset system idle timer, forcing system to be in working state
+				SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED);
 			else
 				SetThreadExecutionState(ES_CONTINUOUS);
 
@@ -307,7 +344,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 		MessageBox(NULL,
 			"Call to RegisterClassEx failed!",
 			APP_NAME,
-			NULL);
+			0);
 
 		return 1;
 	}
@@ -319,10 +356,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 	int window_height = 300;
 
 	HWND Window = CreateWindowEx(
-		NULL,
+		0,
 		WindowClass.lpszClassName,
 		APP_NAME,
-		NULL,// WS_SYSMENU | WS_CAPTION | WS_VISIBLE,
+		WS_POPUP, // Used for performance reasons, saves display data under new window so it won't need to be redrawn
 		window_x, window_y, window_width, window_height,
 		NULL,
 		NULL,
@@ -336,7 +373,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 		MessageBox(NULL,
 			"Call to CreateWindowEx failed!",
 			APP_NAME,
-			NULL);
+			0);
 
 		return 1;
 	}
@@ -345,12 +382,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 
 	UpdateWindow(Window);
 
+	// Config initialization
+	Config_Defaults(&gConfig);
+
 	if (!EnableHotKeys(Window))
 	{
 		MessageBox(NULL,
 			"Cannot register keyboard shortcuts.\nSome other application might already use shortcuts.\nPlease check & adjust the settings!",
 			APP_NAME, MB_ICONEXCLAMATION);
 	}
+
+	//temp
+	Config_ShowDialog(&gConfig);
+
 
 	MSG message = { 0 };
 	BOOL bRet;
@@ -374,21 +418,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 			uint64_t CounterElapsed = Counter.QuadPart - ClickCounter.QuadPart;
 			float TimeElapsed = (float) CounterElapsed / (float) PerfCountFrequency;
 
-			if (TimeElapsed >= ClickSpeed) // Possibly integrate perfcountfrequency into clickspeed so it isn't calculated ever pass
+			float TargetFrequencyPeriod = 1.0f / gConfig.InputEventFrequency;
+
+			if (TimeElapsed >= TargetFrequencyPeriod) // Possibly integrate perfcountfrequency into TargetFrequencyPeriod so it isn't calculated ever pass
 			{
 				ClickCounter = Counter;
 
-				mouse_event(MOUSEEVENTF_LEFTDOWN, ClickPosition.x, ClickPosition.y, 0, 0);
-				mouse_event(MOUSEEVENTF_LEFTUP, ClickPosition.x, ClickPosition.y, 0, 0);
-
-				/*INPUT left_down = {};
-				left_down.type = INPUT_MOUSE;
-				left_down.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-				INPUT left_up = {};
-				left_up.type = INPUT_MOUSE;
-				left_up.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-				SendInput(1, &left_down, sizeof(INPUT));
-				SendInput(1, &left_up, sizeof(INPUT));*/
+				execute_input_event(gConfig.InputEvent);
 			}
 		}
 
@@ -404,7 +440,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 			MessageBox(NULL,
 				"Message returned error!",
 				APP_NAME,
-				NULL);
+				0);
 
 			return bRet;
 		}
