@@ -15,14 +15,29 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="rcclicker.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rcconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="rcinputs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="rcclicker.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rcconfig.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rcinputs.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="rc.rc">
@@ -30,10 +45,10 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="rc1.ico">
+    <Image Include="rc_clicker.ico">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="rc_clicker.ico">
+    <Image Include="rc1.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
