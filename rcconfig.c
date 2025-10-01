@@ -38,21 +38,21 @@ static void Config__FormatKey(DWORD KeyMod, WCHAR* Text, size_t TextBufferSize)
 {
     if (KeyMod == 0)
     {
-        StringCbCopy(Text, TextBufferSize, L"[none]");
+        StringCbCopyW(Text, TextBufferSize, L"[none]");
         return;
     }
     else
     {
-        StringCbCopy(Text, TextBufferSize, L"");
+        StringCbCopyW(Text, TextBufferSize, L"");
     }
 
     DWORD Mod = HOT_KEY_GET_MOD(KeyMod);
 
     Text[0] = 0;
-    if (Mod & MOD_CONTROL) StringCbCat(Text, TextBufferSize, L"Ctrl + ");
-    if (Mod & MOD_WIN)     StringCbCat(Text, TextBufferSize, L"Win + ");
-    if (Mod & MOD_SHIFT)   StringCbCat(Text, TextBufferSize, L"Shift + ");
-    if (Mod & MOD_ALT)     StringCbCat(Text, TextBufferSize, L"Alt + ");
+    if (Mod & MOD_CONTROL) StringCbCatW(Text, TextBufferSize, L"Ctrl + ");
+    if (Mod & MOD_WIN)     StringCbCatW(Text, TextBufferSize, L"Win + ");
+    if (Mod & MOD_SHIFT)   StringCbCatW(Text, TextBufferSize, L"Shift + ");
+    if (Mod & MOD_ALT)     StringCbCatW(Text, TextBufferSize, L"Alt + ");
 
     struct
     {
@@ -79,19 +79,19 @@ static void Config__FormatKey(DWORD KeyMod, WCHAR* Text, size_t TextBufferSize)
     {
         if (Overrides[i].Key == HOT_KEY_GET_KEY(KeyMod))
         {
-            StringCbCat(Text, TextBufferSize, Overrides[i].Text);
+            StringCbCatW(Text, TextBufferSize, Overrides[i].Text);
             return;
         }
     }
 
     WCHAR KeyText[32];
-    UINT ScanCode = MapVirtualKey(HOT_KEY_GET_KEY(KeyMod), MAPVK_VK_TO_VSC);
-    if (GetKeyNameText(ScanCode << 16, KeyText, _countof(KeyText)) == 0)
+    UINT ScanCode = MapVirtualKeyW(HOT_KEY_GET_KEY(KeyMod), MAPVK_VK_TO_VSC);
+    if (GetKeyNameTextW(ScanCode << 16, KeyText, _countof(KeyText)) == 0)
     {
         _snwprintf_s(KeyText, ARRAYSIZE(KeyText), ARRAYSIZE(KeyText), L"[0x%02x]", HOT_KEY_GET_KEY(KeyMod));
     }
 
-    StringCbCat(Text, TextBufferSize, KeyText);
+    StringCbCatW(Text, TextBufferSize, KeyText);
 }
 
 static void Config__SetDialogValues(HWND Window, Config* C)
@@ -103,12 +103,12 @@ static void Config__SetDialogValues(HWND Window, Config* C)
     // shortcuts
     WCHAR Text[64];
     Config__FormatKey(C->ShortcutClicker, Text, sizeof(Text));
-    SetDlgItemText(Window, ID_SHORTCUT_CLICKER, Text);
-    SetWindowLongPtr(GetDlgItem(Window, ID_SHORTCUT_CLICKER), GWLP_USERDATA, C->ShortcutClicker);
+    SetDlgItemTextW(Window, ID_SHORTCUT_CLICKER, Text);
+    SetWindowLongPtrW(GetDlgItem(Window, ID_SHORTCUT_CLICKER), GWLP_USERDATA, C->ShortcutClicker);
 
     Config__FormatKey(C->ShortcutSavePosition, Text, sizeof(Text));
-    SetDlgItemText(Window, ID_SHORTCUT_SAVEPOSITION, Text);
-    SetWindowLongPtr(GetDlgItem(Window, ID_SHORTCUT_SAVEPOSITION), GWLP_USERDATA, C->ShortcutSavePosition);
+    SetDlgItemTextW(Window, ID_SHORTCUT_SAVEPOSITION, Text);
+    SetWindowLongPtrW(GetDlgItem(Window, ID_SHORTCUT_SAVEPOSITION), GWLP_USERDATA, C->ShortcutSavePosition);
 }
 
 static LRESULT CALLBACK Config__DialogProc(HWND Window, UINT Message, WPARAM WParam, LPARAM LParam)
@@ -116,10 +116,10 @@ static LRESULT CALLBACK Config__DialogProc(HWND Window, UINT Message, WPARAM WPa
     if (Message == WM_INITDIALOG)
     {
         Config* C = (Config*)LParam;
-        SetWindowLongPtr(Window, GWLP_USERDATA, (LONG_PTR)C);
+        SetWindowLongPtrW(Window, GWLP_USERDATA, (LONG_PTR)C);
         for (int i = 0; i < MAX_INPUT; i++)
         {
-            SendDlgItemMessage(Window, ID_INPUT_EVENT, CB_INSERTSTRING, InputEvents[i].type, (LPARAM)InputEvents[i].name);
+            SendDlgItemMessageW(Window, ID_INPUT_EVENT, CB_INSERTSTRING, InputEvents[i].type, (LPARAM)InputEvents[i].name);
         }
 
         Config__SetDialogValues(Window, C);
@@ -173,7 +173,7 @@ static LRESULT CALLBACK Config__DialogProc(HWND Window, UINT Message, WPARAM WPa
         {
             if (gConfigShortcut.Control == 0)
             {
-                SetDlgItemText(Window, Control, L"Press new shortcut, [ESC] to cancel, [BACKSPACE] to disable");
+                SetDlgItemTextW(Window, Control, L"Press new shortcut, [ESC] to cancel, [BACKSPACE] to disable");
 
                 gConfigShortcut.Control = Control;
                 gConfigShortcut.Config = C;

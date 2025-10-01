@@ -118,7 +118,7 @@ void set_input_event(DWORD InputEventType)
     }
 
     //throw error
-    MessageBox(NULL,
+    MessageBoxW(NULL,
         L"Invalid Input Event - RC",
         APP_NAME,
         0);
@@ -126,5 +126,6 @@ void set_input_event(DWORD InputEventType)
 
 UINT execute_input_event()
 {
-    return SendInput(InputEvent.size, InputEvent.inputs, sizeof(INPUT));
+    // Casting here just to remove const warning
+    return SendInput(InputEvent.size, (LPINPUT) InputEvent.inputs, sizeof(INPUT));
 }
