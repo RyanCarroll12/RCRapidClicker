@@ -1,7 +1,5 @@
 #include "rcclicker.h"
 
-#pragma comment (lib, "uxtheme.lib")
-
 #define WM_RC_ALREADY_RUNNING	(WM_USER+1)
 #define WM_RC_COMMAND			(WM_USER+4)
 
@@ -31,49 +29,49 @@ static Config gConfig;
 
 void ShowNotification(HWND Window, LPCWSTR Message, LPCWSTR Title, DWORD Flags)
 {
-    NOTIFYICONDATA Data = { 0 };
+    NOTIFYICONDATAW Data = { 0 };
     Data.cbSize = sizeof(Data);
     Data.hWnd = Window;
     Data.uFlags = NIF_INFO | NIF_TIP;
     Data.dwInfoFlags = Flags;
-    StringCbCopy(Data.szTip, sizeof(Data.szTip), APP_NAME);
-    StringCbCopy(Data.szInfo, sizeof(Data.szInfo), Message);
-    StringCbCopy(Data.szInfoTitle, sizeof(Data.szInfoTitle), Title ? Title : APP_NAME);
+    StringCbCopyW(Data.szTip, sizeof(Data.szTip), APP_NAME);
+    StringCbCopyW(Data.szInfo, sizeof(Data.szInfo), Message);
+    StringCbCopyW(Data.szInfoTitle, sizeof(Data.szInfoTitle), Title ? Title : APP_NAME);
 
-    Shell_NotifyIcon(NIM_MODIFY, &Data);
+    Shell_NotifyIconW(NIM_MODIFY, &Data);
 }
 
 void UpdateTrayIcon(HWND Window)
 {
-    NOTIFYICONDATA Data = { 0 };
+    NOTIFYICONDATAW Data = { 0 };
     Data.cbSize = sizeof(Data);
     Data.hWnd = Window;
     Data.uFlags = NIF_ICON;
     Data.hIcon = rcIcon;
 
-    Shell_NotifyIcon(NIM_MODIFY, &Data);
+    Shell_NotifyIconW(NIM_MODIFY, &Data);
 }
 
 void AddTrayIcon(HWND Window)
 {
-    NOTIFYICONDATA Data = { 0 };
+    NOTIFYICONDATAW Data = { 0 };
     Data.cbSize = sizeof(Data);
     Data.hWnd = Window;
     Data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
     Data.uCallbackMessage = WM_RC_COMMAND;
     Data.hIcon = rcIcon;
 
-    StringCbCopy(Data.szTip, 128, APP_NAME);
-    Shell_NotifyIcon(NIM_ADD, &Data);
+    StringCbCopyW(Data.szTip, 128, APP_NAME);
+    Shell_NotifyIconW(NIM_ADD, &Data);
 }
 
 void RemoveTrayIcon(HWND Window)
 {
-    NOTIFYICONDATA Data = { 0 };
+    NOTIFYICONDATAW Data = { 0 };
     Data.cbSize = sizeof(Data);
     Data.hWnd = Window;
 
-    Shell_NotifyIcon(NIM_DELETE, &Data);
+    Shell_NotifyIconW(NIM_DELETE, &Data);
 }
 
 BOOL DisableHotKeys(HWND Window)
@@ -171,9 +169,9 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
                 {
                     HMENU Menu = CreatePopupMenu();
 
-                    AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), SETTINGS, L"Settings");
-                    AppendMenu(Menu, MF_SEPARATOR, (UINT_PTR)NULL, NULL);
-                    AppendMenu(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), QUIT, L"Quit");
+                    AppendMenuW(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), SETTINGS, L"Settings");
+                    AppendMenuW(Menu, MF_SEPARATOR, (UINT_PTR)NULL, NULL);
+                    AppendMenuW(Menu, MF_STRING | (clicking ? MF_DISABLED : 0), QUIT, L"Quit");
 
                     POINT Mouse;
                     GetCursorPos(&Mouse);
@@ -277,9 +275,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 
     rcIcon = (HICON)LoadImage(hInstance, MAKEINTRESOURCE(IDI_ICON2), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 
-    WM_TASKBARCREATED = RegisterWindowMessage(L"TaskbarCreated");
+    WM_TASKBARCREATED = RegisterWindowMessageW(L"TaskbarCreated");
 
-    WNDCLASSEX WindowClass = { 0 };
+    WNDCLASSEXW WindowClass = { 0 };
     WindowClass.cbSize = sizeof(WindowClass);
     WindowClass.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
     WindowClass.lpfnWndProc = WindowProc;
@@ -287,16 +285,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     WindowClass.hIcon = rcIcon;
     WindowClass.lpszClassName = L"rc_rapid_clicker_window_class";
 
-    HWND Existing = FindWindow(WindowClass.lpszClassName, NULL);
+    HWND Existing = FindWindowW(WindowClass.lpszClassName, NULL);
     if (Existing)
     {
         PostMessage(Existing, WM_RC_ALREADY_RUNNING, 0, 0);
         ExitProcess(0);
     }
 
-    if (!RegisterClassEx(&WindowClass))
+    if (!RegisterClassExW(&WindowClass))
     {
-        MessageBox(NULL,
+        MessageBoxW(NULL,
             L"Call to RegisterClassEx failed!",
             APP_NAME,
             0);
@@ -310,7 +308,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     int window_width = 300;
     int window_height = 300;
 
-    HWND Window = CreateWindowEx(
+    HWND Window = CreateWindowExW(
         0,
         WindowClass.lpszClassName,
         APP_NAME,
@@ -325,7 +323,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 
     if (!Window)
     {
-        MessageBox(NULL,
+        MessageBoxW(NULL,
             L"Call to CreateWindowEx failed!",
             APP_NAME,
             0);
@@ -342,7 +340,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
 
     if (!EnableHotKeys(Window))
     {
-        MessageBox(NULL,
+        MessageBoxW(NULL,
             L"Cannot register keyboard shortcuts.\nSome other application might already use shortcuts.\nPlease check & adjust the settings!",
             APP_NAME, MB_ICONEXCLAMATION);
     }
@@ -387,7 +385,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         }
         else
         {
-            MessageBox(NULL,
+            MessageBoxW(NULL,
                 L"Message returned error!",
                 APP_NAME,
                 0);

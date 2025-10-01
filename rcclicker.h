@@ -1,8 +1,14 @@
 #pragma once
 
+#pragma comment(lib, "User32.lib")
+#pragma comment(lib, "Shell32.lib")
+#pragma comment (lib, "uxtheme.lib")
+
 #include "resource.h"
 #include "rcinputs.h"
 #include "rcconfig.h"
+
+#define UNICODE
 
 #include <windows.h>
 #include <Uxtheme.h>
