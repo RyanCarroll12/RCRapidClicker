@@ -27,7 +27,7 @@ void Config_Defaults(Config* C)
     {
         // input
           .InputEventType = DefaultEventType
-        , .InputTargetFrequency = 2
+        , .InputTargetFrequency = 250
         // shortcuts
         , .ShortcutClicker = HOT_KEY(VK_TAB, MOD_SHIFT)
         , .ShortcutSavePosition = HOT_KEY(VK_DECIMAL, MOD_CONTROL | MOD_SHIFT)

@@ -269,7 +269,7 @@ LRESULT CALLBACK WindowProc(HWND Window, UINT Message, WPARAM wParam, LPARAM lPa
     return 0;
 }
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
     LARGE_INTEGER PerfCountFrequencyResult;
     QueryPerformanceFrequency(&PerfCountFrequencyResult);
@@ -368,7 +368,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
             uint64_t CounterElapsed = Counter.QuadPart - ClickCounter.QuadPart;
             float TimeElapsed = (float) CounterElapsed / (float) PerfCountFrequency;
 
-            float TargetFrequencyPeriod = 1.0f / gConfig.InputTargetFrequency;
+            float TargetFrequencyPeriod = gConfig.InputTargetFrequency / 1000.0f; //1.0f / gConfig.InputTargetFrequency;
 
             if (TimeElapsed >= TargetFrequencyPeriod) // Possibly integrate perfcountfrequency into TargetFrequencyPeriod so it isn't calculated ever pass
             {

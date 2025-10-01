@@ -9,6 +9,7 @@
 enum InputType {
     INPUT_LEFTCLICK
     , INPUT_INVERTED_LEFTCLICK
+    , INPUT_RIGHTCLICK
     , INPUT_ENTERKEY
     , INPUT_MOVEMOUSE
     , MAX_INPUT
@@ -18,7 +19,7 @@ struct InputEventInfo
 {
     enum InputType type;
     const WCHAR* name;
-    const INPUT* inputs;
+    INPUT* inputs;
     int size;
 };
 

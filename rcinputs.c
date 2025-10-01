@@ -1,7 +1,7 @@
 #include "rcinputs.h"
 
 
-const INPUT LeftClick[] =
+INPUT LeftClick[] =
 {
     {
         .type = INPUT_MOUSE
@@ -13,19 +13,31 @@ const INPUT LeftClick[] =
     }
 };
 
-const INPUT InvLeftClick[] =
+INPUT InvLeftClick[] =
 {
     {
         .type = INPUT_MOUSE
-        , .mi = {.dwFlags = MOUSEEVENTF_LEFTUP | MOUSEEVENTF_ABSOLUTE}
+        , .mi = {.dwFlags = MOUSEEVENTF_LEFTUP}
     }
     , {
         .type = INPUT_MOUSE
-        , .mi = {.dwFlags = MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_ABSOLUTE}
+        , .mi = {.dwFlags = MOUSEEVENTF_LEFTDOWN}
     }
 };
 
-const INPUT PointLeftClick[] =
+INPUT RightClick[] =
+{
+    {
+        .type = INPUT_MOUSE
+        , .mi = {.dwFlags = MOUSEEVENTF_RIGHTDOWN}
+    }
+    , {
+        .type = INPUT_MOUSE
+        , .mi = {.dwFlags = MOUSEEVENTF_RIGHTUP}
+    }
+};
+
+INPUT PointLeftClick[] =
 {
     {
         .type = INPUT_MOUSE
@@ -37,7 +49,7 @@ const INPUT PointLeftClick[] =
     }
 };
 
-const INPUT EnterKey[] =
+INPUT EnterKey[] =
 {
     {
         .type = INPUT_KEYBOARD
@@ -49,7 +61,7 @@ const INPUT EnterKey[] =
     }
 };
 
-const INPUT MoveMouse[] =
+INPUT MoveMouse[] =
 {
     {
         .type = INPUT_MOUSE
@@ -71,6 +83,12 @@ const struct InputEventInfo InputEvents[] =
         , .name = L"Inverted Left Click"
         , .inputs = InvLeftClick
         , .size = ARRAYSIZE(InvLeftClick)
+    }
+    , {
+          .type = INPUT_RIGHTCLICK
+        , .name = L"Right Click"
+        , .inputs = RightClick
+        , .size = ARRAYSIZE(RightClick)
     }
     , {
           .type = INPUT_ENTERKEY
